@@ -9,9 +9,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Notify Slack
-        uses: slackapi/slack-github-action@v1.24.0
+        uses: 8398a7/action-slack@v3
         with:
-          payload: |
+          status: custom
+          fields: repo,message,commit,author
+          custom_payload: |
             {
               "text": ":rocket: Push detected in *${{ github.repository }}* by `${{ github.actor }}`",
               "attachments": [
