@@ -1,0 +1,24 @@
+name: Notify Slack on Push
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify Slack
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": ":rocket: Push detected in *${{ github.repository }}* by `${{ github.actor }}`",
+              "attachments": [
+                {
+                  "text": "Commit: `${{ github.event.head_commit.message }}`"
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
