@@ -1,0 +1,44 @@
+name: Commit Summary to Slack (with ChatGPT)
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  summarize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract commit message
+        id: get_commit
+        run: |
+          echo "MESSAGE<<EOF" >> $GITHUB_ENV
+          echo "${{ github.event.head_commit.message }}" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Query ChatGPT for summary
+        id: gpt
+        run: |
+          RESPONSE=$(curl https://api.openai.com/v1/chat/completions \
+            -s \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
+            -d '{
+              "model": "gpt-4",
+              "messages": [
+                {"role": "system", "content": "あなたは開発者向けアシスタントです。与えられたコミットメッセージの要点を簡潔に1文で要約してください。"},
+                {"role": "user", "content": "'"${{ env.MESSAGE }}"'"}
+              ],
+              "temperature": 0.4
+            }')
+          SUMMARY=$(echo $RESPONSE | jq -r '.choices[0].message.content')
+          echo "SUMMARY<<EOF" >> $GITHUB_ENV
+          echo "$SUMMARY" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Post summary to Slack
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{
+              \"text\": \":memo: *コミット要約 (by GPT)*\n\`${{ github.event.head_commit.message }}\`\n➡️ *GPT要約*：${{ env.SUMMARY }}\"
+            }" \
+            ${{ secrets.SLACK_WEBHOOK_URL }}
